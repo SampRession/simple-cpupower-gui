@@ -1,19 +1,13 @@
 import tkinter as tk
 from tkinter import ttk
-
-# TODO: input field to type a number between 6 and 45
-# TODO: Button to validate
-# TODO: launch script to set the maximum value (f-string) -> 
-#           Command : sudo cpupower frequency-set -u 4.5GHz
-#                     f"sudo cpupower frequency-set -u {max_freq}"
-# TODO: success dialog (with returned line from terminal ?)
+from ttkwidgets import TickScale
 
 
 class MainWindow:
     def __init__(self, root):
         self.root = root
         root.title("CPU clock speed limiter")
-        root.geometry("765x250")
+        root.geometry("765x280")
         # root.resizable(False, False)
         
         main_frame = ttk.Frame(root)
@@ -48,59 +42,54 @@ class MainWindow:
         # Sliders
         sliders_frame = ttk.Frame(main_frame, padding=5)
         sliders_label = ttk.Label(sliders_frame, 
-                                  text="Set clock speed scale",
+                                  text="Set clock speed scale (GHz)",
                                   padding=(0, 0, 0, 5))
         sliders_label["font"] = "Helvetica 14"
         
         min_speed_label = ttk.Label(sliders_frame,
                                     text="Min speed")
-        min_speed_slider = ttk.Scale(master=sliders_frame,
+        min_speed_slider = TickScale(master=sliders_frame,
                                     length=175,
                                     from_=0.8,
                                     to=4.5,
-                                    variable=self.min_clock_speed,
-                                    command=self.set_min_speed)
-        min_speed_value = ttk.Label(sliders_frame, 
-                                    # text=f"{self.set_min_speed('value')}",
-                                    textvariable=self.min_clock_speed)
+                                    digits=1,
+                                    variable=self.min_clock_speed)
         
         max_speed_label = ttk.Label(sliders_frame,
                                     text="Max speed")
-        max_speed_slider = ttk.Scale(master=sliders_frame,
+        max_speed_slider = TickScale(master=sliders_frame,
                                     length=175,
                                     from_=0.8,
                                     to=4.5,
-                                    variable=self.max_clock_speed,
-                                    command=self.set_max_speed)
-        max_speed_value = ttk.Label(sliders_frame, 
-                                    # text=f"{self.set_min_speed('value')}",
-                                    textvariable=self.max_clock_speed)
+                                    digits=1,
+                                    variable=self.max_clock_speed)
         
         sliders_label.grid(column=0, row=0, columnspan=3, sticky="w")
         min_speed_label.grid(column=0, row=1, padx=5)
-        min_speed_slider.grid(column=1, row=1, pady=5)
-        min_speed_value.grid(column=2, row=1, pady=5)
+        min_speed_slider.grid(column=1, row=1, pady=0)
         max_speed_label.grid(column=0, row=2, padx=5)
-        max_speed_slider.grid(column=1, row=2, pady=5)
-        max_speed_value.grid(column=2, row=2, pady=5)
+        max_speed_slider.grid(column=1, row=2, pady=0)
         
         # Confirm button
         confirm_frame = ttk.Frame(main_frame)
         confirm_button = ttk.Button(master=confirm_frame, 
                                     text="Confirm",
                                     command=self.validate_settings)
-        confirm_button.pack()
+        confirm_button.pack(anchor="center")
         
         # Output Label Frame
         output_frame = ttk.Labelframe(main_frame, text="Terminal Output",
-                                      width=400, height=200)
+                                      width=470, height=260, padding=(5))
+        self.terminal_text = tk.Text(output_frame, state="normal", 
+                                width=65, height=12)
+        self.terminal_text.pack()
         
         # Main Grid layout
         main_frame.grid(column=0, row=0)
         gov_frame.grid(column=0, row=0)
         sliders_frame.grid(column=0, row=1)
-        output_frame.grid(column=1, row=0, rowspan=2,padx=15, sticky="E")
-        confirm_frame.grid(column=0, row=2, columnspan=2, pady=15)
+        output_frame.grid(column=1, row=0, rowspan=3, padx=15, sticky="E")
+        confirm_frame.grid(column=0, row=2, columnspan=1, pady=15)
         
     def set_governor(self):
         governor_policy = self.governor_policy.get()
@@ -114,22 +103,19 @@ class MainWindow:
     def set_max_speed(self):
         max_speed = self.max_clock_speed.get()
         max_speed = round(max_speed, 1)
-        print(max_speed)
         return max_speed
         
-    # Provisoire
     def validate_settings(self):
         governor_policy = self.set_governor()
         min_speed = self.set_min_speed()
-        max_speed = self.set_max_speed()   
-        print(f"Current speed scale is: {min_speed}<-->{max_speed}\n"
-              f"Current governor policy is: {governor_policy}")
-    
-    def round_min_value(self):
-        min_value = self.min_clock_speed.get()
-        round_min_value = round(min_value, 1)
-        return round_min_value
-
+        max_speed = self.set_max_speed()  
+        message = (f"Current speed scale is: {min_speed}<-->{max_speed}\n"
+                    f"Current governor policy is: {governor_policy}")
+        if self.terminal_text.get("1.0", "end"):
+            self.terminal_text.replace("1.0", "end", chars=message)
+        else:
+            self.terminal_text.insert("1.0", message)
+            
 
 def main():
     root = tk.Tk()
