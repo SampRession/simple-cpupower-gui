@@ -1,3 +1,4 @@
+import subprocess
 import tkinter as tk
 from tkinter import ttk
 from ttkwidgets import TickScale
@@ -13,9 +14,9 @@ class MainWindow:
         main_frame = ttk.Frame(root)
         
         # Variables
-        self.min_clock_speed = tk.DoubleVar(value=0.8)
-        self.max_clock_speed = tk.DoubleVar(value=4.5)
-        self.governor_policy = tk.StringVar(value="powersave")
+        self.min_clock_speed = tk.DoubleVar(value=None)
+        self.max_clock_speed = tk.DoubleVar(value=None)
+        self.governor_policy = tk.StringVar(value=None)
         
         # Governor policy
         gov_frame = ttk.Frame(main_frame, padding=(5, 15, 100, 5))
@@ -25,14 +26,12 @@ class MainWindow:
         powersave_policy = ttk.Radiobutton(gov_frame,
                                            text="Powersave",
                                            variable=self.governor_policy,
-                                           value="powersave",
-                                           command=self.set_governor)
+                                           value="powersave")
         # powersave_policy.configure(style=)
         performance_policy = ttk.Radiobutton(gov_frame,
                                            text="Performance",
                                            variable=self.governor_policy,
-                                           value="performance",
-                                           command=self.set_governor)
+                                           value="performance")
         gov_label.grid(column=0, row=0, sticky="W")
         powersave_policy.grid(column=0, row=1)
         performance_policy.grid(column=0, row=2)
@@ -93,28 +92,80 @@ class MainWindow:
         
     def set_governor(self):
         governor_policy = self.governor_policy.get()
-        return governor_policy
+        command = ["cpupower", "frequency-set", "-g", governor_policy]
+        # command = ["echo", f"governor: {governor_policy}"]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, 
+                                   stderr=subprocess.PIPE)
+        output, error = process.communicate()
+        output = output.decode()
+        error = error.decode()
+        return output, error
         
     def set_min_speed(self):
         min_speed = self.min_clock_speed.get()
         min_speed = round(min_speed, 1)
-        return min_speed
+        command = ["echo", f"min speed: {min_speed}"]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, 
+                                   stderr=subprocess.PIPE)
+        output, error = process.communicate()
+        output = output.decode()
+        error = error.decode()
+        return output, error
     
     def set_max_speed(self):
         max_speed = self.max_clock_speed.get()
         max_speed = round(max_speed, 1)
-        return max_speed
-        
+        command = ["echo", f"max speed: {max_speed}"]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, 
+                                   stderr=subprocess.PIPE)
+        output, error = process.communicate()
+        output = output.decode()
+        error = error.decode()
+        return output, error
+
     def validate_settings(self):
-        governor_policy = self.set_governor()
-        min_speed = self.set_min_speed()
-        max_speed = self.set_max_speed()  
-        message = (f"Current speed scale is: {min_speed}<-->{max_speed}\n"
-                    f"Current governor policy is: {governor_policy}")
+        self.gov_output, self.gov_error = self.set_governor()
+        self.min_output, self.min_error = self.set_min_speed()
+        self.max_output, self.max_error = self.set_max_speed()  
+        message = self.construct_message()
         if self.terminal_text.get("1.0", "end"):
             self.terminal_text.replace("1.0", "end", chars=message)
         else:
             self.terminal_text.insert("1.0", message)
+            
+    def construct_message(self):
+        if self.gov_output or self.gov_error:
+            if self.gov_error:
+                gov_msg = f"Error (set governor policy):\n{self.gov_error}"
+            else:
+                gov_msg = (
+            f"Governor policy is now set to: "
+            f"{self.governor_policy.get().title()}"
+            f"Command output:\n{self.gov_output}"
+            )
+
+        if self.min_output or self.min_error:
+            if self.min_error:
+                min_msg = f"Error (set min clock speed):\n{self.min_error}"
+            else:
+                min_msg = (
+            f"Minimum clock speed is now set to: "
+            f"{self.min_clock_speed.get()}GHz\n"
+            f"Command output:\n{self.min_output}"
+            )
+
+        if self.max_output or self.max_error:
+            if self.max_error:
+                max_msg = f"Error (set max clock speed):\n{self.max_error}"
+            else:
+                max_msg = (
+            f"Maximum clock speed is now set to: "
+            f"{self.max_clock_speed.get()}GHz\n"
+            f"Command output:\n{self.max_output}"
+            )
+        message = f"{gov_msg}\n\n{min_msg}\n\n{max_msg}"
+        return message
+        
             
 
 def main():
