@@ -3,12 +3,16 @@ import tkinter as tk
 from tkinter import ttk
 from ttkwidgets import TickScale
 
+# FIXME: app asks the sudo password 
+# Either authorize the app to run password-less
+# Or find a way to prompt the user
+
 
 class MainWindow:
     def __init__(self, root):
         self.root = root
         root.title("CPU clock speed limiter")
-        root.geometry("765x280")
+        root.geometry("765x290")
         # root.resizable(False, False)
         
         main_frame = ttk.Frame(root)
@@ -69,31 +73,52 @@ class MainWindow:
         max_speed_label.grid(column=0, row=2, padx=5)
         max_speed_slider.grid(column=1, row=2, pady=0)
         
-        # Confirm button
+        # Confirm buttons
         confirm_frame = ttk.Frame(main_frame)
-        confirm_button = ttk.Button(master=confirm_frame, 
-                                    text="Confirm",
-                                    command=self.validate_settings)
-        confirm_button.pack(anchor="center")
+        confirm_governor_button = ttk.Button(
+            master=confirm_frame,
+            text="Confirm governor",
+            command=lambda: self.validate_settings("gov")
+        )
+        confirm_speed_button = ttk.Button(
+            master=confirm_frame,
+            text="Confirm speed",
+            command=lambda: self.validate_settings("speed")
+        )
+        confirm_all_button = ttk.Button(
+            master=confirm_frame, 
+            text="Confirm",
+            command=lambda: self.validate_settings("all")
+        )
+        
+        confirm_governor_button.grid(column=0, row=0, padx=5)
+        confirm_speed_button.grid(column=1, row=0, padx=5)
+        confirm_all_button.grid(column=0, row=1, columnspan=2, pady=5)
         
         # Output Label Frame
         output_frame = ttk.Labelframe(main_frame, text="Terminal Output",
                                       width=470, height=260, padding=(5))
         self.terminal_text = tk.Text(output_frame, state="normal", 
-                                width=65, height=12)
-        self.terminal_text.pack()
+                                width=65, height=14)
+        scrollbar = ttk.Scrollbar(output_frame, orient="vertical",
+                                  command=self.terminal_text.yview)
+        
+        self.terminal_text.configure(yscrollcommand=scrollbar.set)
+        self.terminal_text.grid(column=0, row=0, sticky="NES")
+        scrollbar.grid(column=1, row=0, sticky="NS")
+        
         
         # Main Grid layout
         main_frame.grid(column=0, row=0)
         gov_frame.grid(column=0, row=0)
         sliders_frame.grid(column=0, row=1)
-        output_frame.grid(column=1, row=0, rowspan=3, padx=15, sticky="E")
-        confirm_frame.grid(column=0, row=2, columnspan=1, pady=15)
+        output_frame.grid(column=1, row=0, rowspan=3, padx=15, pady=5, 
+                          sticky="NE")
+        confirm_frame.grid(column=0, row=2, columnspan=1, pady=10)
         
     def set_governor(self):
         governor_policy = self.governor_policy.get()
-        command = ["cpupower", "frequency-set", "-g", governor_policy]
-        # command = ["echo", f"governor: {governor_policy}"]
+        command = ["sudo", "cpupower", "frequency-set", "-g", governor_policy]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         output, error = process.communicate()
@@ -104,7 +129,8 @@ class MainWindow:
     def set_min_speed(self):
         min_speed = self.min_clock_speed.get()
         min_speed = round(min_speed, 1)
-        command = ["echo", f"min speed: {min_speed}"]
+        command = ["sudo", "cpupower", "frequency-set", 
+                   "-d", f"{min_speed}Ghz"]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         output, error = process.communicate()
@@ -115,7 +141,8 @@ class MainWindow:
     def set_max_speed(self):
         max_speed = self.max_clock_speed.get()
         max_speed = round(max_speed, 1)
-        command = ["echo", f"max speed: {max_speed}"]
+        command = ["sudo", "cpupower", "frequency-set", 
+                   "-d", f"{max_speed}Ghz"]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         output, error = process.communicate()
@@ -123,35 +150,80 @@ class MainWindow:
         error = error.decode()
         return output, error
 
-    def validate_settings(self):
-        self.gov_output, self.gov_error = self.set_governor()
-        self.min_output, self.min_error = self.set_min_speed()
-        self.max_output, self.max_error = self.set_max_speed()  
-        message = self.construct_message()
+    def validate_settings(self, button_id):
+        gov_policy = self.governor_policy.get().title()
+        min_speed = round(self.min_clock_speed.get(), 1)
+        max_speed = round(self.max_clock_speed.get(), 1)
+        
+        if button_id == "all":
+            gov_output, gov_error = self.set_governor()
+            min_output, min_error = self.set_min_speed()
+            max_output, max_error = self.set_max_speed()  
+            message = OutputMessage(gov_policy=gov_policy,
+                                    min_speed=min_speed,
+                                    max_speed=max_speed,
+                                    gov_output=gov_output, 
+                                    gov_error=gov_error,
+                                    min_output=min_output,
+                                    min_error=min_error,
+                                    max_output=max_output,
+                                    max_error=max_error).construct_message()
+        elif button_id=="speed":
+            min_output, min_error = self.set_min_speed()
+            max_output, max_error = self.set_max_speed() 
+            message = OutputMessage(min_speed=min_speed,
+                                    max_speed=max_speed,
+                                    min_output=min_output,
+                                    min_error=min_error,
+                                    max_output=max_output,
+                                    max_error=max_error).construct_message()
+        else:
+            gov_output, gov_error = self.set_governor()
+            message = OutputMessage(gov_policy=gov_policy,
+                                    gov_output=gov_output, 
+                                    gov_error=gov_error).construct_message()
+        
         if self.terminal_text.get("1.0", "end"):
             self.terminal_text.replace("1.0", "end", chars=message)
         else:
             self.terminal_text.insert("1.0", message)
-            
+
+
+class OutputMessage():
+    def __init__(self, **kwargs):
+        self.gov_policy = kwargs.get("gov_policy", None)
+        self.min_speed = kwargs.get("min_speed", None)
+        self.max_speed = kwargs.get("max_speed", None)
+        self.gov_output = kwargs.get("gov_output", None)
+        self.gov_error = kwargs.get("gov_error", None)
+        self.min_output = kwargs.get("min_output", None)
+        self.min_error = kwargs.get("min_error", None)
+        self.max_output = kwargs.get("max_output", None)
+        self.max_error = kwargs.get("max_error", None)
+    
     def construct_message(self):
+        gov_msg = ""
+        min_msg = ""
+        max_msg = ""
+        
         if self.gov_output or self.gov_error:
             if self.gov_error:
-                gov_msg = f"Error (set governor policy):\n{self.gov_error}"
+                gov_msg = f"Error (set governor policy):\n{self.gov_error}\n\n"
             else:
                 gov_msg = (
             f"Governor policy is now set to: "
-            f"{self.governor_policy.get().title()}"
-            f"Command output:\n{self.gov_output}"
+            f"{self.gov_policy}\n"
+            f"Command output:\n{self.gov_output}\n\n"
             )
 
         if self.min_output or self.min_error:
             if self.min_error:
-                min_msg = f"Error (set min clock speed):\n{self.min_error}"
+                min_msg = f"Error (set min clock speed):\n{self.min_error}\n"
             else:
                 min_msg = (
             f"Minimum clock speed is now set to: "
-            f"{self.min_clock_speed.get()}GHz\n"
-            f"Command output:\n{self.min_output}"
+            f"{self.min_speed}GHz\n"
+            f"Command output:\n{self.min_output}\n"
             )
 
         if self.max_output or self.max_error:
@@ -160,13 +232,13 @@ class MainWindow:
             else:
                 max_msg = (
             f"Maximum clock speed is now set to: "
-            f"{self.max_clock_speed.get()}GHz\n"
+            f"{self.max_speed}GHz\n"
             f"Command output:\n{self.max_output}"
             )
-        message = f"{gov_msg}\n\n{min_msg}\n\n{max_msg}"
+        
+        message = f"{gov_msg}{min_msg}{max_msg}"
         return message
         
-            
 
 def main():
     root = tk.Tk()
@@ -176,3 +248,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

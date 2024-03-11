@@ -1,4 +1,7 @@
 .venv
+dist
+build
+CPU_Management.spec
 ruff.toml
 tests.py
 todos.md
