@@ -3,10 +3,8 @@ import tkinter as tk
 from tkinter import ttk
 from ttkwidgets import TickScale
 
-# FIXME: app asks the sudo password 
-# Either authorize the app to run password-less
-# Or find a way to prompt the user
-
+# FIXME: make command asks password only once 
+ 
 
 class MainWindow:
     def __init__(self, root):
@@ -118,7 +116,8 @@ class MainWindow:
         
     def set_governor(self):
         governor_policy = self.governor_policy.get()
-        command = ["sudo", "cpupower", "frequency-set", "-g", governor_policy]
+        command = ["pkexec", "cpupower", "frequency-set", "-g", 
+                   governor_policy]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         output, error = process.communicate()
@@ -129,7 +128,7 @@ class MainWindow:
     def set_min_speed(self):
         min_speed = self.min_clock_speed.get()
         min_speed = round(min_speed, 1)
-        command = ["sudo", "cpupower", "frequency-set", 
+        command = ["pkexec", "cpupower", "frequency-set", 
                    "-d", f"{min_speed}Ghz"]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
@@ -141,8 +140,8 @@ class MainWindow:
     def set_max_speed(self):
         max_speed = self.max_clock_speed.get()
         max_speed = round(max_speed, 1)
-        command = ["sudo", "cpupower", "frequency-set", 
-                   "-d", f"{max_speed}Ghz"]
+        command = ["pkexec", "cpupower", "frequency-set", 
+                   "-u", f"{max_speed}Ghz"]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         output, error = process.communicate()
