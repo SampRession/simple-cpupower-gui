@@ -4,7 +4,7 @@ I work and play on laptop, so I need to control my CPU frequency to avoid unnece
 
 ## Usage
 Pretty straightforward: launch the executable, change what you want to, and click on the corresponding button to validate your choices. 
-Hence the `cpupower frequency-set` command need root privileges, you'll be prompt to enter your password each time you click on a button (nothing is stored, it acts like when you do it directly via a terminal).
+Because the `cpupower frequency-set` command need root privileges, you'll be prompt to enter your password each time you click on a button (nothing is stored, it acts like when you do it directly via a terminal).
 
 ## Notes
 Feel free to tell me if I can improve this app, or if you have bugs or suggestions!
