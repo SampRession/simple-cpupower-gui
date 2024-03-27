@@ -172,12 +172,16 @@ class MainWindow:
         output, error = process.communicate()
         output = output.decode()
         error = error.decode()
+        
+        freq_info_output, freq_info_error = self.frequency_info()
 
         message = OutputMessage(
             min_speed=min_speed,
             max_speed=max_speed,
             speed_output=output,
             speed_error=error,
+            freq_info_output=freq_info_output,
+            freq_info_error=freq_info_error,
         ).construct_message()
 
         self.write_output(message)

@@ -1,7 +1,7 @@
-.venv
-dist
-build
-CPU_Management.spec
+/.venv
+/dist
+/build
+*.spec
 ruff.toml
 tests.py
 todos.md
