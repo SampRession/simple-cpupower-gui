@@ -1,5 +1,5 @@
 # Simple CPU Management GUI
-This app is my really first app written in Python!  
+This app is my very first app written in Python!  
 I work and play on laptop, so I need to control my CPU frequency to avoid unnecessary overheating. On Windows, I usually do that through [ThrottleStop](https://www.techpowerup.com/download/techpowerup-throttlestop/), but now I use a Linux distribution as my primary OS. When I discovered and started to use *cpupower*, I thought of creating a GUI to easily change governor policy and frequency! After some time, here it is!
 
 ## Usage
